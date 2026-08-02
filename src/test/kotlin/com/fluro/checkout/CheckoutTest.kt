@@ -2,6 +2,7 @@ package com.fluro.checkout
 
 import com.fluro.checkout.domain.Money
 import com.fluro.checkout.domain.Sku
+import com.fluro.checkout.rules.MultipricedRule
 import com.fluro.checkout.rules.UnitPriceRule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -38,5 +39,38 @@ class CheckoutTest {
     @Test
     fun `scanning nothing returns 0p`() {
         assertEquals(Money(0), checkout.total())
+    }
+
+    @Test
+    fun `scanning three units of Sku A applies multipriced promotion`() {
+        val unitRule = UnitPriceRule(mapOf(Sku("A") to Money(50)))
+        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130), Money(50))
+        checkout = Checkout(pricingRules = listOf(unitRule, multipricedRule))
+
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("A"))
+
+        assertEquals(Money(130), checkout.total())
+    }
+
+    @Test
+    fun `scanning mix of items with multipriced promotion and standard items`() {
+        val unitRule =
+            UnitPriceRule(
+                mapOf(
+                    Sku("A") to Money(50),
+                    Sku("B") to Money(75),
+                ),
+            )
+        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130), Money(50))
+        checkout = Checkout(pricingRules = listOf(unitRule, multipricedRule))
+
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("B"))
+
+        assertEquals(Money(205), checkout.total())
     }
 }
