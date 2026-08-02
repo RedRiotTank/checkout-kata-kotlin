@@ -2,6 +2,7 @@ package com.fluro.checkout
 
 import com.fluro.checkout.domain.Money
 import com.fluro.checkout.domain.Sku
+import com.fluro.checkout.rules.BuyNGetMFreeRule
 import com.fluro.checkout.rules.MultipricedRule
 import com.fluro.checkout.rules.UnitPriceRule
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -72,5 +73,19 @@ class CheckoutTest {
         checkout.scan(Sku("B"))
 
         assertEquals(Money(205), checkout.total())
+    }
+
+    @Test
+    fun `scanning items applies buy N get M free promotion`() {
+        val unitRule = UnitPriceRule(mapOf(Sku("C") to Money(25)))
+        val bngmRule = BuyNGetMFreeRule(Sku("C"), buyQuantity = 3, freeQuantity = 1, unitPrice = Money(25))
+        checkout = Checkout(pricingRules = listOf(unitRule, bngmRule))
+
+        checkout.scan(Sku("C"))
+        checkout.scan(Sku("C"))
+        checkout.scan(Sku("C"))
+        checkout.scan(Sku("C"))
+
+        assertEquals(Money(75), checkout.total())
     }
 }
