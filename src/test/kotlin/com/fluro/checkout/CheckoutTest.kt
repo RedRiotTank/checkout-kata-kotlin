@@ -3,6 +3,7 @@ package com.fluro.checkout
 import com.fluro.checkout.domain.Money
 import com.fluro.checkout.domain.Sku
 import com.fluro.checkout.rules.BuyNGetMFreeRule
+import com.fluro.checkout.rules.MealDealRule
 import com.fluro.checkout.rules.MultipricedRule
 import com.fluro.checkout.rules.UnitPriceRule
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -87,5 +88,32 @@ class CheckoutTest {
         checkout.scan(Sku("C"))
 
         assertEquals(Money(75), checkout.total())
+    }
+
+    @Test
+    fun `scanning items included in a meal deal applies special combination price`() {
+        val unitRule =
+            UnitPriceRule(
+                mapOf(
+                    Sku("D") to Money(150),
+                    Sku("E") to Money(200),
+                ),
+            )
+        val mealDealRule =
+            MealDealRule(
+                itemsToCombine = setOf(Sku("D"), Sku("E")),
+                comboPrice = Money(300),
+                regularPrices =
+                    mapOf(
+                        Sku("D") to Money(150),
+                        Sku("E") to Money(200),
+                    ),
+            )
+        checkout = Checkout(pricingRules = listOf(unitRule, mealDealRule))
+
+        checkout.scan(Sku("D"))
+        checkout.scan(Sku("E"))
+
+        assertEquals(Money(300), checkout.total())
     }
 }
