@@ -8,12 +8,10 @@ class UnitPriceRule(private val prices: Map<Sku, Money>) : PricingRule {
         var total = Money.ZERO
         val remainingItems = items.toMutableMap()
 
-        val iterator = remainingItems.iterator()
-        while (iterator.hasNext()) {
-            val (sku, count) = iterator.next()
+        items.forEach { (sku, count) ->
             prices[sku]?.let { price ->
                 total += price * count
-                iterator.remove()
+                remainingItems.remove(sku)
             }
         }
 
