@@ -2,6 +2,11 @@
 
 A fully tested Kotlin implementation of the Checkout Kata, built with a focus on code quality, immutability, and SOLID principles.
 
+## 📋 Prerequisites
+
+* **Java JDK 17 or higher** (tested with Java 21). 
+* Make sure your `JAVA_HOME` environment variable is properly configured.
+
 ## 🚀 How to Run
 
 The project uses the Gradle wrapper, so you don't need to install anything globally. You can run the tests directly from your terminal:
