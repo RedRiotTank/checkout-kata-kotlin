@@ -10,6 +10,6 @@ data class RuleResult(
     val remainingItems: ItemTally,
 )
 
-interface PricingRule {
+fun interface PricingRule {
     fun apply(items: ItemTally): RuleResult
 }
