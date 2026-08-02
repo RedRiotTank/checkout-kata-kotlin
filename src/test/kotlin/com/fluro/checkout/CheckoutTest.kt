@@ -139,4 +139,44 @@ class CheckoutTest {
 
         assertEquals(Money(450), checkout.total())
     }
+
+    @Test
+    fun `scanning items triggers multipriced promotion multiple times`() {
+        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130))
+        val unitRule = UnitPriceRule(mapOf(Sku("A") to Money(50)))
+        checkout = Checkout(pricingRules = listOf(multipricedRule, unitRule))
+
+        repeat(6) { checkout.scan(Sku("A")) }
+
+        assertEquals(Money(260), checkout.total())
+    }
+
+    @Test
+    fun `scanning multiple sets of meal deal items applies combination price multiple times`() {
+        val mealDealRule =
+            MealDealRule(
+                itemsToCombine = setOf(Sku("D"), Sku("E")),
+                comboPrice = Money(300),
+            )
+        val unitRule = UnitPriceRule(mapOf(Sku("D") to Money(150), Sku("E") to Money(200)))
+        checkout = Checkout(pricingRules = listOf(mealDealRule, unitRule))
+
+        checkout.scan(Sku("D"))
+        checkout.scan(Sku("E"))
+        checkout.scan(Sku("D"))
+        checkout.scan(Sku("E"))
+
+        assertEquals(Money(600), checkout.total())
+    }
+
+    @Test
+    fun `scanning an unknown item ignores it and does not crash the system`() {
+        val unitRule = UnitPriceRule(mapOf(Sku("A") to Money(50)))
+        checkout = Checkout(pricingRules = listOf(unitRule))
+
+        checkout.scan(Sku("A"))
+        checkout.scan(Sku("UNKNOWN_SKU"))
+
+        assertEquals(Money(50), checkout.total())
+    }
 }
