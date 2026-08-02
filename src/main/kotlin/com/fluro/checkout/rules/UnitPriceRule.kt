@@ -4,11 +4,19 @@ import com.fluro.checkout.domain.Money
 import com.fluro.checkout.domain.Sku
 
 class UnitPriceRule(private val prices: Map<Sku, Money>) : PricingRule {
-    override fun evaluate(items: List<Sku>): PriceEffect {
-        val total =
-            items.fold(Money.ZERO) { acc, item ->
-                acc + (prices[item] ?: Money.ZERO)
+    override fun apply(items: ItemTally): RuleResult {
+        var total = Money.ZERO
+        val remainingItems = items.toMutableMap()
+
+        val iterator = remainingItems.iterator()
+        while (iterator.hasNext()) {
+            val (sku, count) = iterator.next()
+            prices[sku]?.let { price ->
+                total += price * count
+                iterator.remove()
             }
-        return Charge(total)
+        }
+
+        return RuleResult(total, remainingItems)
     }
 }

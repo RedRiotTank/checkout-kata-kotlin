@@ -9,14 +9,23 @@ class BuyNGetMFreeRule(
     private val freeQuantity: Int,
     private val unitPrice: Money,
 ) : PricingRule {
-    override fun evaluate(items: List<Sku>): PriceEffect {
-        val matchingItems = items.count { it == sku }
+    override fun apply(items: ItemTally): RuleResult {
+        val count = items[sku] ?: 0
         val bundleSize = buyQuantity + freeQuantity
-        val totalBundles = matchingItems / bundleSize
+        val bundles = count / bundleSize
 
-        if (totalBundles == 0) return Discount(Money.ZERO)
+        if (bundles == 0) return RuleResult(Money.ZERO, items)
 
-        val discountAmount = unitPrice * (totalBundles * freeQuantity)
-        return Discount(discountAmount)
+        val price = unitPrice * (bundles * buyQuantity)
+        val remainingCount = count % bundleSize
+
+        val remainingItems = items.toMutableMap()
+        if (remainingCount == 0) {
+            remainingItems.remove(sku)
+        } else {
+            remainingItems[sku] = remainingCount
+        }
+
+        return RuleResult(price, remainingItems)
     }
 }

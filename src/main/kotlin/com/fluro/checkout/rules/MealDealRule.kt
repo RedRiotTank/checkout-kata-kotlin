@@ -6,22 +6,25 @@ import com.fluro.checkout.domain.Sku
 class MealDealRule(
     private val itemsToCombine: Set<Sku>,
     private val comboPrice: Money,
-    private val regularPrices: Map<Sku, Money>,
 ) : PricingRule {
-    override fun evaluate(items: List<Sku>): PriceEffect {
-        if (itemsToCombine.isEmpty()) return Discount(Money.ZERO)
+    override fun apply(items: ItemTally): RuleResult {
+        val combos = itemsToCombine.minOfOrNull { items[it] ?: 0 } ?: 0
 
-        val numberOfCombos = itemsToCombine.minOf { sku -> items.count { it == sku } }
+        if (combos == 0) return RuleResult(Money.ZERO, items)
 
-        if (numberOfCombos == 0) return Discount(Money.ZERO)
+        val price = comboPrice * combos
+        val remainingItems = items.toMutableMap()
 
-        val regularComboTotal =
-            itemsToCombine.fold(Money.ZERO) { total, sku ->
-                total + (regularPrices[sku] ?: Money.ZERO)
+        itemsToCombine.forEach { sku ->
+            val currentCount = remainingItems[sku] ?: 0
+            val newCount = currentCount - combos
+            if (newCount <= 0) {
+                remainingItems.remove(sku)
+            } else {
+                remainingItems[sku] = newCount
             }
+        }
 
-        val discountPerCombo = regularComboTotal.amountInPence - comboPrice.amountInPence
-
-        return Discount(Money(numberOfCombos * discountPerCombo))
+        return RuleResult(price, remainingItems)
     }
 }

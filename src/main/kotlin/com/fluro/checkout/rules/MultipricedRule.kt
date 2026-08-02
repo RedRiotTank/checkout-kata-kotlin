@@ -7,18 +7,23 @@ class MultipricedRule(
     private val sku: Sku,
     private val quantityForOffer: Int,
     private val offerPrice: Money,
-    private val unitPrice: Money,
 ) : PricingRule {
-    override fun evaluate(items: List<Sku>): PriceEffect {
-        val matchingItems = items.count { it == sku }
-        val offerBundles = matchingItems / quantityForOffer
+    override fun apply(items: ItemTally): RuleResult {
+        val count = items[sku] ?: 0
+        val bundles = count / quantityForOffer
 
-        if (offerBundles == 0) return Discount(Money.ZERO)
+        if (bundles == 0) return RuleResult(Money.ZERO, items)
 
-        val normalPriceForBundles = unitPrice * (offerBundles * quantityForOffer)
-        val specialPriceForBundles = offerPrice * offerBundles
+        val price = offerPrice * bundles
+        val remainingCount = count % quantityForOffer
 
-        val discount = normalPriceForBundles.amountInPence - specialPriceForBundles.amountInPence
-        return Discount(Money(discount))
+        val remainingItems = items.toMutableMap()
+        if (remainingCount == 0) {
+            remainingItems.remove(sku)
+        } else {
+            remainingItems[sku] = remainingCount
+        }
+
+        return RuleResult(price, remainingItems)
     }
 }

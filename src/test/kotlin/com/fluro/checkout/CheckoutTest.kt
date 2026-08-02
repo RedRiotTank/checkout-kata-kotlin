@@ -45,9 +45,10 @@ class CheckoutTest {
 
     @Test
     fun `scanning three units of Sku A applies multipriced promotion`() {
+        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130))
         val unitRule = UnitPriceRule(mapOf(Sku("A") to Money(50)))
-        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130), Money(50))
-        checkout = Checkout(pricingRules = listOf(unitRule, multipricedRule))
+
+        checkout = Checkout(pricingRules = listOf(multipricedRule, unitRule))
 
         checkout.scan(Sku("A"))
         checkout.scan(Sku("A"))
@@ -58,6 +59,7 @@ class CheckoutTest {
 
     @Test
     fun `scanning mix of items with multipriced promotion and standard items`() {
+        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130))
         val unitRule =
             UnitPriceRule(
                 mapOf(
@@ -65,8 +67,8 @@ class CheckoutTest {
                     Sku("B") to Money(75),
                 ),
             )
-        val multipricedRule = MultipricedRule(Sku("A"), 3, Money(130), Money(50))
-        checkout = Checkout(pricingRules = listOf(unitRule, multipricedRule))
+
+        checkout = Checkout(pricingRules = listOf(multipricedRule, unitRule))
 
         checkout.scan(Sku("A"))
         checkout.scan(Sku("A"))
@@ -78,9 +80,10 @@ class CheckoutTest {
 
     @Test
     fun `scanning items applies buy N get M free promotion`() {
-        val unitRule = UnitPriceRule(mapOf(Sku("C") to Money(25)))
         val bngmRule = BuyNGetMFreeRule(Sku("C"), buyQuantity = 3, freeQuantity = 1, unitPrice = Money(25))
-        checkout = Checkout(pricingRules = listOf(unitRule, bngmRule))
+        val unitRule = UnitPriceRule(mapOf(Sku("C") to Money(25)))
+
+        checkout = Checkout(pricingRules = listOf(bngmRule, unitRule))
 
         checkout.scan(Sku("C"))
         checkout.scan(Sku("C"))
@@ -92,6 +95,11 @@ class CheckoutTest {
 
     @Test
     fun `scanning items included in a meal deal applies special combination price`() {
+        val mealDealRule =
+            MealDealRule(
+                itemsToCombine = setOf(Sku("D"), Sku("E")),
+                comboPrice = Money(300),
+            )
         val unitRule =
             UnitPriceRule(
                 mapOf(
@@ -99,21 +107,36 @@ class CheckoutTest {
                     Sku("E") to Money(200),
                 ),
             )
-        val mealDealRule =
-            MealDealRule(
-                itemsToCombine = setOf(Sku("D"), Sku("E")),
-                comboPrice = Money(300),
-                regularPrices =
-                    mapOf(
-                        Sku("D") to Money(150),
-                        Sku("E") to Money(200),
-                    ),
-            )
-        checkout = Checkout(pricingRules = listOf(unitRule, mealDealRule))
+
+        checkout = Checkout(pricingRules = listOf(mealDealRule, unitRule))
 
         checkout.scan(Sku("D"))
         checkout.scan(Sku("E"))
 
         assertEquals(Money(300), checkout.total())
+    }
+
+    @Test
+    fun `meal deal rule leaves uncombined items for unit price rule`() {
+        val mealDealRule =
+            MealDealRule(
+                itemsToCombine = setOf(Sku("D"), Sku("E")),
+                comboPrice = Money(300),
+            )
+        val unitRule =
+            UnitPriceRule(
+                mapOf(
+                    Sku("D") to Money(150),
+                    Sku("E") to Money(200),
+                ),
+            )
+
+        checkout = Checkout(pricingRules = listOf(mealDealRule, unitRule))
+
+        checkout.scan(Sku("D"))
+        checkout.scan(Sku("D"))
+        checkout.scan(Sku("E"))
+
+        assertEquals(Money(450), checkout.total())
     }
 }

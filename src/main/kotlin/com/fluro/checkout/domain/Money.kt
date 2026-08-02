@@ -9,10 +9,6 @@ data class Money(val amountInPence: Int) {
         return Money(this.amountInPence + other.amountInPence)
     }
 
-    operator fun minus(other: Money): Money {
-        return Money(maxOf(0, this.amountInPence - other.amountInPence))
-    }
-
     operator fun times(multiplier: Int): Money {
         return Money(this.amountInPence * multiplier)
     }
